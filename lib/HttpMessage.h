@@ -1,7 +1,10 @@
-#ifndef C11CODEREVIEW_LIB_H
-#define C11CODEREVIEW_LIB_H
+#ifndef HTTPMESSAGE_LIB_H
+#define HTTPMESSAGE_LIB_H
+
 #include<stdlib.h>
 typedef enum Method {UNSUPPORTED, GET, POST} Method;
+typedef enum StatusCode {OK=200, NOTFOUND=404} StatusCode;
+
 
 typedef struct Header {
     char *name;
@@ -21,5 +24,6 @@ typedef struct Request {
 struct Request *parse_request(const char *raw);
 void free_header(struct Header *h);
 struct Request * free_request(struct Request *req);
+void print_request(struct Request *req );
 
-#endif //C11CODEREVIEW_LIB_H
+#endif //HTTPMESSAGE_LIB_H

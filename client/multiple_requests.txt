@@ -1,0 +1,5 @@
+GET /server/sample.txt HTTP/1.1
+GET /server/html.txt HTTP/1.1
+POST /client/post_sample.txt HTTP/1.1
+GET /server/longtxt.txt HTTP/1.1
+
