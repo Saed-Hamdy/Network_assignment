@@ -8,7 +8,7 @@
 #include <unistd.h> // for close
 #include<pthread.h>
 
- char *raw_request = "GET /test.html HTTP/1.1\r\n"
+ char *raw_request = "GET /test.html HTTP/1.0\r\n"
             "Host: localhost:8080\r\n"
             "Connection: keep-alive\r\n"
             "Upgrade-Insecure-Requests: 1\r\n"
@@ -52,9 +52,13 @@ void * cientThread(void *arg)
   strcpy(message,raw_request);
   send(clientSocket , message , strlen(message) , 0) ;
   //Read the message from the server into the buffer
-  recv(clientSocket, buffer, 1024, 0) ;
+  int recive_size =recv(clientSocket, buffer, 1024, 0) ;
+//----------------------------for post --------------------------------------
+  send(clientSocket , "10" , 2 , 0) ;
+  send(clientSocket , "0123456789" , 10 , 0) ;
+//-----------------------------------------------------------------------------
   //Print the received message
-  printf("Data received: %s\n",buffer);
+  printf("Data received: %s\n size = %d",buffer,recive_size);
   close(clientSocket);
   printf("clientSocket closed\n" );
   pthread_exit(NULL);
