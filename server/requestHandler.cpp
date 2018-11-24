@@ -62,7 +62,7 @@ void handle_post_request(int socketID, struct Request* req){
         size_t received = recv(socketID, buffer, BUFFER_SIZE, 0);
         received_data += received;
         fwrite(buffer, sizeof(char), received, received_file);
-        // printf("Data received (%d):\n%s\n",received, buffer);
+        printf("Data received (%d):\n%s\n",received, buffer);
     }
     fclose(received_file);
 }

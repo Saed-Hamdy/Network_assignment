@@ -1,34 +1,67 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<sys/socket.h>
-#include <fcntl.h> // for open
-#include <unistd.h> // for close
+#include<fcntl.h> // for open
+#include<unistd.h> // for close
 #include<netinet/in.h>
-#include <arpa/inet.h>
+#include<arpa/inet.h>
 #include<pthread.h>
-#include <string.h>
+#include<string.h>
+#include <time.h>
+#include <unistd.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #include "../lib/HttpMessage.h"
 #include "requestHandler.h"
+#include <math.h>
 
 #define DEFAULT_PORT 80
 #define LOCAL_HOST "127.0.0.1"
 #define MAX_CONNECTIONS 50
+#define REQUEST_SIZE 2000
+#define INIT_WAIT 1
+   
+long number_of_connections = 0;
+int min_time = 2;
+struct timeval  timeout = {INIT_WAIT,0};
+/* Setting time out vlaues for some seconds */
+// timeout.tv_sec = INIT_WAIT;   // WAIT seconds
+// timeout.tv_usec = 0;    // 0 milliseconds
 
+void update_timeout(){
+    long extra = number_of_connections<2 ? INIT_WAIT-min_time: INIT_WAIT/sqrt(number_of_connections);
+    timeout.tv_sec = (int) (min_time + extra);
+    printf("timeout updated to : %d\n", timeout.tv_sec);
+    // e^(-number_of_connections)
+    // 1/ sqrt(number_of_connections)
+}
 
 void * socket_thread(void *arg)
 {
-    char client_message[2000];
+    char client_message[REQUEST_SIZE];
     int socketID = *((int *)arg);
-    int i =1;
-     while(i>0)
-     { 
-         memset(client_message, 0, 2000);
-         printf("start le\n");
-        if(recv(socketID, client_message, 2000, 0) < 0)
-        {
-            printf("Failed to Receive Request\n");
-            // break;
+    fd_set input_set;
+    FD_ZERO(&input_set);
+    FD_SET(socketID, &input_set);
+    while(true)
+    {   
+        int ready, buffer_out;
+        ready = select(FD_SETSIZE, &input_set, NULL, NULL, &timeout);
+
+        if (ready < 0){
+           printf("Error: Bad file descriptor set.\n");
+           break;
         }
+        else if (ready == 0){
+           printf("Error: Packet timeout expired.\n");
+           break;
+        }
+        // new packet received
+         size_t read_size;
+        do{
+            read_size = read(socketID, client_message, REQUEST_SIZE);
+        }while(read_size<0);
+        printf("request Size :%d\n",read_size );
         struct Request *req = parse_request(client_message);
         printf("................. request recived: %s\n", req->url);
         // print_request(req);
@@ -40,13 +73,15 @@ void * socket_thread(void *arg)
             printf("Unsupported request\n");
         }
         free(req);
-        i--;
+        break;
     }
     close(socketID);
+    // decrease the number of connections as the connection closes
+    number_of_connections--;
+    update_timeout();
     printf("Exit socket thread\n");
     pthread_exit(NULL);
 }
-
 
 int main(int argc, char *argv[])
 {
@@ -97,6 +132,8 @@ int main(int argc, char *argv[])
         }
         addr_size = sizeof(serverStorage);
         newSocket = accept(serverSocket, (struct sockaddr *) &serverStorage, &addr_size);
+        number_of_connections++;
+        update_timeout();
         // for each client request, create a thread and assign the client request to it
         // By doing so, the main thread can entertain next requests.
         if(pthread_create(&tid[i++], NULL, socket_thread, &newSocket) != 0 )

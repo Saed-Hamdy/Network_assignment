@@ -1,1 +1,1 @@
-POST /server/image.bmp HTTP/1.1
+POST /server/image2.bmp HTTP/1.1
