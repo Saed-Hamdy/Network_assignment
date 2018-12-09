@@ -12,8 +12,10 @@
 #include "../lib/fileHandler.h"
 #include "../lib/HttpMessage.h"
 #include "../lib/stringFuncs.h"
+#include <queue>
 
 #define DEFAULT_PORT 80
+#define THREADS_NUMBER 1
 #define HOST "127.0.0.1"
 #define BUFFER_SIZE 1024
 #define CLIENT_PATH "client/received"
@@ -104,12 +106,11 @@ void post_request(int clientSocket, char* request){
     }
 }
 
+
 void get_request(int clientSocket, char* request){
     char buffer[BUFFER_SIZE];
     memset(buffer, 0, BUFFER_SIZE);
-    // connect(clientSocket, (struct sockaddr *) &serverAddr, addr_size);
-    send(clientSocket, request, strlen(request), 0);
-    //Read the message from the server into the buffer
+
     int receive_length = recv(clientSocket, buffer, BUFFER_SIZE, 0);
     // get url
     char url[100];
@@ -173,7 +174,8 @@ void get_request(int clientSocket, char* request){
     fclose(received_file);
 }
 
-void client_thread(void *arg){
+void * client_thread(void *arg){
+    std::queue <char*> queue_request;
     int clientSocket;
     struct sockaddr_in serverAddr;
     socklen_t addr_size;
@@ -222,8 +224,14 @@ void client_thread(void *arg){
                 line[i] = 0;
 
                 printf("%s\n", line);
-                if (strncmp("GET", line, 3) == 0)
-                    get_request(clientSocket, line);
+                if (strncmp("GET", line, 3) == 0){
+                    char * request = (char *)malloc(strlen(line));
+                    strcpy(request, line);
+                     queue_request.push(request);
+                     send(clientSocket, request, strlen(request), 0);
+                     //sleep(1);
+                     // get_request(clientSocket, line);
+                }
                 else if(strncmp("POST", line, 4) == 0)
                     post_request(clientSocket, line);
                 else
@@ -234,14 +242,23 @@ void client_thread(void *arg){
                 while(*pointer == ' ' || *pointer == '\t') pointer++;
                 
             }
+
+            while(!queue_request.empty()){
+                char* line =queue_request.front();
+                printf("handling recieve%s\n",line );
+                queue_request.pop();
+                get_request(clientSocket, line);
+                free(line);
+            }
         }
 
     }
-
+    printf("finished\n");
 
     // close socket and exit thread
-    close(clientSocket);
-    printf("Client Socket is closed\n" );
+    //sleep(2);
+    //close(clientSocket);
+    printf("Client Socket is closed  %d\n",clientSocket );
     pthread_exit(NULL);
 }
 
@@ -259,5 +276,20 @@ int main(int argc, char *argv[])
     struct thread_args ta;
     ta.port_number = port_number;
     client_thread(&ta);
+    // //client_thread(&ta);
+    // pthread_t tid[THREADS_NUMBER];
+    // int i =0 ;
+    // while(i < THREADS_NUMBER)
+    // {
+    //     if( pthread_create(&tid[i], NULL, client_thread, &ta) != 0 )
+    //            printf("Failed to create thread\n");
+    //     i++;
+    // }
+    // sleep(1);
+    // while(i>0)
+    // {
+    //   pthread_join(tid[--i],NULL);
+    //    printf("%d:\n",i);
+    // }
     return 0;
 }

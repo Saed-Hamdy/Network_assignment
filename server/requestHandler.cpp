@@ -112,7 +112,7 @@ void handle_get_request(int socketID, struct Request* req){
     memcpy(data + strlen(status_line) + strlen(headers) ,finfo->data,remaining_buffer);
     // strncat(data, finfo->data, remaining_buffer);
 
-    printf("Size   : %d\n",finfo->size);
+    // printf("Size   : %d\n",finfo->size);
     int size_sent= remaining_buffer <= finfo->size? BUFFER_SIZE-1:strlen(status_line) + strlen(headers)+finfo->size;
     send_data(socketID, data,size_sent);
 

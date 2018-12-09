@@ -1,3 +1,0 @@
-osting sample text
->>
-client sends data to server. HTTP/1GET /server/sample.txt HTTP/1.1
