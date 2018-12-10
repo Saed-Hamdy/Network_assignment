@@ -26,19 +26,19 @@ AR              = ar
 CFLAGS          = -Wall #-ansi
 LFLAGS          = -Wall #-ansi
 
-SENDEROBJS		= sender.o tcp.o
-RECEIVEROBJS	= receiver.o tcp.o
-ALLEXEC			= sender receiver
+SENDEROBJS		= client.o tcp.o fileHandler.o
+RECEIVEROBJS	= server.o tcp.o fileHandler.o
+ALLEXEC			= client server 
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
 all: $(ALLEXEC)
 
-sender: $(SENDEROBJS)
+client: $(SENDEROBJS)
 	$(LD) $(LFLAGS) -o $@ $(SENDEROBJS)
 
-receiver: $(RECEIVEROBJS)
+server: $(RECEIVEROBJS)
 	$(LD) $(LFLAGS) -o $@ $(RECEIVEROBJS)
 
 clean:
