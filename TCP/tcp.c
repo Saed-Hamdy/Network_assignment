@@ -4,6 +4,53 @@
 //Chris Wang(mw866) & Ruiheng Wang (rw533)
 
 state_t s;
+bool congestion_simulation  ;
+int loss_locations[1024];
+int last_loss_location ;
+FILE *congestion_file, *window_size_file ;
+
+void open_analysis_files(int file_nu ){
+    congestion_simulation = true;
+    char fname[200];
+    sprintf(fname,"analysis/congestion_file%d.txt",file_nu);
+    if ((congestion_file = fopen(fname, "wb")) == NULL){
+        perror("fopen");
+        exit(-1);
+    }
+     memset(fname, '\0', sizeof(fname));
+    printf("open congestion_file\n");
+    
+    sprintf(fname,"this is where losses happend with client %d\n",file_nu);
+    printf("%s %d\n",fname ,strlen(fname));
+    
+    fwrite(fname, 1, strlen(fname), congestion_file);
+    memset(fname, '\0', sizeof(fname));
+    sprintf(fname,"analysis/window_size_file%d.txt",file_nu);
+    if ((window_size_file = fopen(fname, "wb")) == NULL){
+        perror("fopen");
+        exit(-1);
+    }
+    memset(fname, '\0', sizeof(fname));
+    sprintf(fname,"this is the change for window_size with loss %f % \n",s.loss_prob*100);
+    
+    fwrite(fname, 1, strlen(fname), window_size_file);
+   // fclose(congestion_file);
+    //free(fname);
+}
+
+void add_to_congstion_file(int loss_location){
+    char buf[200];
+    sprintf(buf,"%d\n",loss_location - last_loss_location);
+    fwrite(buf, 1, strlen(buf), congestion_file);
+    last_loss_location = loss_location;
+}
+
+void add_to_window_size_file(int packet_location,int window_size){
+    char buf[200];
+    sprintf(buf,"%d     %d \n",packet_location ,window_size);
+    fwrite(buf, 1, strlen(buf), window_size_file);
+}
+
 
 uint16_t checksum(packet *packet)
 {
@@ -31,8 +78,6 @@ uint16_t checksum(packet *packet)
     sum += (sum >> 16);
     return ~sum;
 }
-
-
 
 ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
     
@@ -149,6 +194,10 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
                             if (s.window_size > 1) {
                                 printf("INFO: Window size is: %d\n", s.window_size);
                                 s.window_size /= 2;
+                                if(congestion_simulation){
+                                    add_to_window_size_file(s.window_size ,s.seqnum);
+                                    add_to_congstion_file(s.seqnum);
+                                }
                                 printf("INFO: Window size is changed to: %d\n", s.window_size);
                             }
                             break;
@@ -177,8 +226,10 @@ ssize_t gbn_send(int sockfd, const void *buf, size_t len, int flags){
                             UNACKed_packets_counter -= ACKed_packets_num;
                             (UNACKed_packets_counter == 0) ? alarm(0): alarm(TIMEOUT);
 
-                            if (s.window_size < MAX_WINDOW_SIZE) {
+                            if (s.window_size < s.max_window_size) {
                                 s.window_size ++;
+                                if (congestion_simulation)
+                                    add_to_window_size_file(s.window_size ,s.seqnum);
                                 printf("INFO: Window size is changed to %d\n", s.window_size);
                             }
                         } else if (ACK_packet->type == FIN && ACK_packet->checksum == checksum(ACK_packet)) {
@@ -435,6 +486,10 @@ ssize_t sr_send(int sockfd, const void *buf, size_t len, int flags){
                             if (s.window_size > 1) {
                                 printf("INFO: Window size is: %d\n", s.window_size);
                                 s.window_size /= 2;
+                                if(congestion_simulation){
+                                    add_to_window_size_file(s.window_size ,s.seqnum);
+                                    add_to_congstion_file(s.seqnum);
+                                }
                                 printf("INFO: Window size is changed to: %d\n", s.window_size);
                             }
                             break;
@@ -464,8 +519,11 @@ ssize_t sr_send(int sockfd, const void *buf, size_t len, int flags){
                             UNACKed_packets_counter --;
                             (UNACKed_packets_counter == 0) ? alarm(0): alarm(TIMEOUT);
 
-                            if (s.window_size < MAX_WINDOW_SIZE) {
+                            if (s.window_size < s.max_window_size) {
                                 s.window_size ++;
+                                if(congestion_simulation){
+                                    add_to_window_size_file(s.window_size ,s.seqnum);
+                                }
                                 printf("INFO: Window size is changed to %d\n", s.window_size);
                             }
                             alarm(TIMEOUT);
@@ -529,11 +587,11 @@ ssize_t sr_recv(int sockfd, void *buf, size_t len, int flags){
     socklen_t client_len = sizeof(client_addr);
     size_t data_len = 0;
     bool is_new_data = false;
-    char recived_data[MAX_WINDOW_SIZE];
+    char recived_data[s.max_window_size];
     uint8_t intial_base= s.seqnum;
     uint8_t max_recived =s.seqnum +1;
     int buf_len=0;
-    for (int i = 0 ; i < MAX_WINDOW_SIZE ; i++)
+    for (int i = 0 ; i < s.max_window_size ; i++)
       recived_data[i] = 'n';
 
     while(s.state == ESTABLISHED && !is_new_data){
@@ -587,7 +645,7 @@ ssize_t sr_recv(int sockfd, void *buf, size_t len, int flags){
                 //close in the end if other problem exists
                 s.state = CLOSED;
             }else{//time out
-                for (int i = -MAX_WINDOW_SIZE+1; i < MAX_WINDOW_SIZE; ++i)
+                for (int i = -s.max_window_size+1; i < s.max_window_size; ++i)
                 {
                     if(recived_data[i]=='p'){
                         ACK_packet->seqnum = intial_base+i ;
@@ -798,7 +856,7 @@ ssize_t sw_recv(int sockfd, void *buf, size_t len, int flags){
     bool is_new_data = false;
     uint8_t intial_base= s.seqnum;
     int buf_len=0;
-    int attempts = MAX_ATTEMPTS;
+    int attempts = 0;
     while(s.state == ESTABLISHED && !is_new_data){
         alarm(TIMEOUT);
         printf("INFO: keep reading data until no more new data to be received.\n");
@@ -947,6 +1005,11 @@ int tcp_close(int sockfd){
     free(sendFinack_package);
     free(recvFin_package);
     free(recvFinack_package);
+    if(congestion_simulation){
+        fclose(congestion_file);
+        fclose(window_size_file);     
+    }
+   
 
     return(s.state == CLOSED ? close(sockfd) : -1);
 }
@@ -1068,7 +1131,9 @@ void timeout_handler(int signum) {
 int tcp_socket(int domain, int type, int protocol){
         
     /*----- Randomizing the seed. This is used by the rand() function -----*/
-     srand((unsigned)time(0));
+     // srand((unsigned)time(0));
+    s.loss_prob=LOSS_PROB;
+    s.max_window_size =MAX_WINDOW_SIZE;
     
     /* Done: Your code here. */
     printf("FUNCTION: tcp_socket()... ");
@@ -1097,6 +1162,9 @@ int tcp_accept(int sockfd, struct sockaddr *client, socklen_t *socklen) {
 
     /* Done: Your code here. */
     // Reference: http://www.tcpipguide.com/free/t_TCPConnectionEstablishmentProcessTheThreeWayHandsh-3.htm
+    //memset(loss_locations,0,sizeof(loss_locations))
+    
+    last_loss_location=0;
 
     printf("FUNCTION: tcp_accept() %d...\n", sockfd);
 
@@ -1188,6 +1256,8 @@ int tcp_accept(int sockfd, struct sockaddr *client, socklen_t *socklen) {
                         free(SYNACK_packet);
                         free(ACK_packet);
                         printf("FUNCTION: tcp_accept returns %d.\n", sockfd);
+                        if(congestion_simulation)
+                            last_loss_location = s.seqnum;
                         return sockfd;
                     }
 

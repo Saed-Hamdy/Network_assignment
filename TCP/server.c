@@ -5,8 +5,8 @@
 
 void client_handler(struct sockaddr_in* serverAddr, struct sockaddr_in* clientAddr, int newSockfd) ;
 ssize_t tcp_send(int sockfd, const void *buf, size_t len, int flags){
-	//return sr_send(sockfd, buf, len,flags);
-	return sw_send(sockfd, buf, len,flags);
+	return sr_send(sockfd, buf, len,flags);
+	//return sw_send(sockfd, buf, len,flags);
 	//return gbn_send(sockfd, buf, len,flags);
 
 }
@@ -68,7 +68,7 @@ struct server_input* read_server_file(char *file_name){
     }
     buffer[i] = 0;
     ser_in->loss_prob = atof(buffer);
-    // printf("%f\n", ser_in->loss_prob);
+     printf("%f\n", ser_in->loss_prob);
 
     return ser_in;
 }
@@ -85,20 +85,10 @@ int main(int argc, char *argv[])
 	socklen_t socklen;
 	char buf[DATALEN * N];   /* buffer to send packets                       */
 	
-	/*----- Checking arguments -----*/
-	// if (argc != 3){
-	// 	fprintf(stderr, "usage: receiver <port> <filename>\n");
-	// 	exit(-1);
-	// }
+	/*----- read server data  from server.in-----*/
+
 	struct server_input* input = read_server_file("server.in");
 	srand(input->seed);
-	/*----- Opening the output file -----*/
-	// char * file_name ="output.txt";
-	// // file_name=argv[2];
-	// if ((outputFile = fopen(file_name, "wb")) == NULL){
-	// 	perror("fopen");
-	// 	exit(-1);
-	// }
 
 	/*----- Opening the socket -----*/
 	if ((sockfd = tcp_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1){
@@ -117,6 +107,7 @@ int main(int argc, char *argv[])
 
 	s.max_window_size=input-> max_window_size;
 	printf("s.max_window_size =%d\n", s.max_window_size);
+	printf("%f\n",input->loss_prob );
 	s.loss_prob = input->loss_prob ;
 	
 	/*----- Binding to the designated port -----*/
@@ -133,54 +124,13 @@ int main(int argc, char *argv[])
 
 	/*----- Waiting for the client to connect -----*/
 	socklen = sizeof(struct sockaddr_in);
-		//printf("recive   %d..............................................................\n",s.type );
-	// newSockfd = tcp_accept(sockfd, (struct sockaddr *)&client, &socklen);
-	// if (newSockfd == -1){
-	// 	perror("tcp_accept");
-	// 	exit(-1);
-	// }
 
-	// printf("%d ->>>> %d \n",sockfd,newSockfd );
-	
-	// ----- Reading from the socket and dumping it to the file -----
-	// if ((numRead = tcp_recv(newSockfd, buf, DATALEN*MAX_WINDOW_SIZE, 0)) == -1){
-	// 		perror("gbn_recv");
-	// 		exit(-1);
-	// }else{
-	// 	printf("File Name = %s..................................................\n", buf);
-	// 	// exit(0);
-	// }
-
-	// if ((inputFile = fopen(buf, "rb")) == NULL){
-	// 	perror("fopen");
-	// 	exit(-1);
-	// }
-	// printf("open.............................\n");
-
-	// //----- Reading from the file and sending it through the socket -----
-	// while ((numRead = fread(buf, 1, DATALEN * N, inputFile)) > 0){
-	// 	printf("read..........................\n");
-	// 	if (tcp_send(sockfd, buf, numRead, 0) == -1){
-	// 		perror("gbn_send");
-	// 		exit(-1);
-	// 	}
-	// }
-
-	// //----- Closing the socket -----
-	// if (tcp_close(sockfd) == -1){
-	// 	perror("tcp_close");
-	// 	exit(-1);
-	// }
-
-	// //----- Closing the file -----
-	// if (fclose(inputFile) == EOF){
-	// 	perror("fclose");
-	// 	exit(-1);
-	// }
-
-
+	int client_nu =0;
 	 while(true){
             printf("Waiting for request..\n");
+            printf("will open ...........\n");
+            open_analysis_files(client_nu);
+            printf("s.loss_prob %f\n",s.loss_prob );
             newSockfd = tcp_accept(sockfd, (struct sockaddr *)&client, &socklen);
 			if (newSockfd == -1){
 				perror("tcp_accept");
@@ -206,6 +156,7 @@ int main(int argc, char *argv[])
             }else{
                 printf("Fork failed !\n");
             }
+            client_nu++;
         } // end of while
 			
 	return (0);

@@ -54,7 +54,7 @@ typedef struct state_t{
     socklen_t sck_len;
     uint8_t window_size;
     uint8_t max_window_size;
-    uint8_t loss_prob;
+    float loss_prob;
     bool fin; // TODO To check if it is necessary
     bool fin_ack; // TODO To check if it is necessary
 
@@ -86,6 +86,8 @@ ssize_t sr_recv(int sockfd, void *buf, size_t len, int flags);
 ssize_t sw_send(int sockfd, const void *buf, size_t len, int flags);
 ssize_t sw_recv(int sockfd, void *buf, size_t len, int flags);
 
+void open_analysis_files(int file_nu );
+
 
 ssize_t  maybe_sendto(int  s, const void *buf, size_t len, int flags, \
                       const struct sockaddr *to, socklen_t tolen);
@@ -96,7 +98,7 @@ ssize_t  maybe_sendto(int  s, const void *buf, size_t len, int flags, \
 uint16_t checksum(packet *packet);
 //#define MIN(X, Y)       ((X) < (Y) ? : (X) : (Y))
 
-#define MAX_ATTEMPTS      4 // The max attempts for gbn_connect(), tcp_accept(), gbn_send(), gbn_receive()
+#define MAX_ATTEMPTS      9 // The max attempts for gbn_connect(), tcp_accept(), gbn_send(), gbn_receive()
 #define DATALEN_BYTES     2 // The number of bytes used in DATA packet to represent the DATALEN
 #define MAX_WINDOW_SIZE	  50
 #endif

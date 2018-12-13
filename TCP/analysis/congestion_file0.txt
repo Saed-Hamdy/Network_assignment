@@ -1,0 +1,5 @@
+this is where losses happend with client 0
+3
+1
+1
+2
