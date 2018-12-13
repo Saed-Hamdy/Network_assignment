@@ -1,6 +1,9 @@
+#include <sys/wait.h>
 #include "tcp.h"
 #include "fileHandler.h"
 
+
+void client_handler(struct sockaddr_in* serverAddr, struct sockaddr_in* clientAddr, int newSockfd) ;
 ssize_t tcp_send(int sockfd, const void *buf, size_t len, int flags){
 	//return sr_send(sockfd, buf, len,flags);
 	return sw_send(sockfd, buf, len,flags);
@@ -130,62 +133,136 @@ int main(int argc, char *argv[])
 
 	/*----- Waiting for the client to connect -----*/
 	socklen = sizeof(struct sockaddr_in);
-		// printf("recive   %d..............................................................\n",s.type );
-	newSockfd = tcp_accept(sockfd, (struct sockaddr *)&client, &socklen);
-	if (newSockfd == -1){
-		perror("tcp_accept");
-		exit(-1);
-	}
-	// printf("%d ->>>> %d \n",sockfd,newSockfd );
-	
-	/*----- Reading from the socket and dumping it to the file -----*/
-	if ((numRead = tcp_recv(newSockfd, buf, DATALEN*MAX_WINDOW_SIZE, 0)) == -1){
-			perror("gbn_recv");
-			exit(-1);
-	}else{
-		printf("File Name = %s..................................................\n", buf);
-		// exit(0);
-	}
-
-	if ((inputFile = fopen(buf, "rb")) == NULL){
-		perror("fopen");
-		exit(-1);
-	}
-	printf("open.............................\n");
-
-	/*----- Reading from the file and sending it through the socket -----*/
-	while ((numRead = fread(buf, 1, DATALEN * N, inputFile)) > 0){
-		printf("read..........................\n");
-		if (tcp_send(sockfd, buf, numRead, 0) == -1){
-			perror("gbn_send");
-			exit(-1);
-		}
-	}
-
-	// while(1){
-	// 	printf("recive   %d..............................................................\n",numRead );
-	// 	if ((numRead = tcp_recv(newSockfd, buf, DATALEN*MAX_WINDOW_SIZE, 0)) == -1){
-	// 		perror("gbn_recv");
-	// 		exit(-1);
-	// 	}
-	// 	else if (numRead == 0)
-	// 		break;
-	// 	printf("recive   %d..............................................................\n",numRead );
-	// 	//printf("%s\n",buf );
-	// 	fwrite(buf, 1, numRead, outputFile);
+		//printf("recive   %d..............................................................\n",s.type );
+	// newSockfd = tcp_accept(sockfd, (struct sockaddr *)&client, &socklen);
+	// if (newSockfd == -1){
+	// 	perror("tcp_accept");
+	// 	exit(-1);
 	// }
 
-	/*----- Closing the socket -----*/
-	if (tcp_close(sockfd) == -1){
-		perror("tcp_close");
-		exit(-1);
-	}
+	// printf("%d ->>>> %d \n",sockfd,newSockfd );
+	
+	// ----- Reading from the socket and dumping it to the file -----
+	// if ((numRead = tcp_recv(newSockfd, buf, DATALEN*MAX_WINDOW_SIZE, 0)) == -1){
+	// 		perror("gbn_recv");
+	// 		exit(-1);
+	// }else{
+	// 	printf("File Name = %s..................................................\n", buf);
+	// 	// exit(0);
+	// }
 
-	/*----- Closing the file -----*/
-	if (fclose(inputFile) == EOF){
-		perror("fclose");
-		exit(-1);
-	}
+	// if ((inputFile = fopen(buf, "rb")) == NULL){
+	// 	perror("fopen");
+	// 	exit(-1);
+	// }
+	// printf("open.............................\n");
+
+	// //----- Reading from the file and sending it through the socket -----
+	// while ((numRead = fread(buf, 1, DATALEN * N, inputFile)) > 0){
+	// 	printf("read..........................\n");
+	// 	if (tcp_send(sockfd, buf, numRead, 0) == -1){
+	// 		perror("gbn_send");
+	// 		exit(-1);
+	// 	}
+	// }
+
+	// //----- Closing the socket -----
+	// if (tcp_close(sockfd) == -1){
+	// 	perror("tcp_close");
+	// 	exit(-1);
+	// }
+
+	// //----- Closing the file -----
+	// if (fclose(inputFile) == EOF){
+	// 	perror("fclose");
+	// 	exit(-1);
+	// }
+
+
+	 while(true){
+            printf("Waiting for request..\n");
+            newSockfd = tcp_accept(sockfd, (struct sockaddr *)&client, &socklen);
+			if (newSockfd == -1){
+				perror("tcp_accept");
+				exit(-1);
+			}
+                        // create new child
+            pid_t pid = fork();
+            if(pid == 0){
+                // child process
+                client_handler(&server, &client,newSockfd);
+                // kill child process upon completion
+                kill(getpid(), SIGKILL);
+
+            }else if (pid > 0){
+            	printf("Parent: child created..\n");
+            	wait(&pid);
+            	if (WIFSIGNALED(pid) != 0)
+            		printf("CHILED DIED BY SIGNAL");
+            	else if(WIFEXITED(pid) != 0)
+            		printf("chiled ended successfully\n");
+            	else
+            		printf("child process ended Not NORMAL \n");
+            }else{
+                printf("Fork failed !\n");
+            }
+        } // end of while
 			
 	return (0);
+}
+
+void client_handler(struct sockaddr_in* serverAddr, struct sockaddr_in* clientAddr,int newSockfd){
+
+	// int newSockfd;
+	int numRead;
+	struct sockaddr_in server;
+	struct sockaddr_in client;
+	FILE *inputFile;     /* input file pointer                              */
+	socklen_t socklen;
+	char buf[DATALEN * N];
+	printf("in chiles .........................\n");
+
+	 // if ((newSockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+  //       printf("Child socket creation failed!\n");
+  //   else {
+  //   	printf("nw soket ..............%d\n",newSockfd );
+  //       if(bind(newSockfd, (struct sockaddr *) serverAddr, sizeof(struct sockaddr_in)) < 0)
+  //           perror("Error, child binding failed");
+
+		if ((numRead = tcp_recv(newSockfd, buf, DATALEN*MAX_WINDOW_SIZE, 0)) == -1){
+				perror("gbn_recv");
+				exit(-1);
+		}else{
+			printf("File Name = %s..................................................\n", buf);
+			// exit(0);
+		}
+
+		if ((inputFile = fopen(buf, "rb")) == NULL){
+			perror("fopen");
+			exit(-1);
+		}
+		printf("open.............................\n");
+
+		//----- Reading from the file and sending it through the socket -----
+		while ((numRead = fread(buf, 1, DATALEN * N, inputFile)) > 0){
+			printf("read..........................\n");
+			if (tcp_send(newSockfd, buf, numRead, 0) == -1){
+				perror("gbn_send");
+				exit(-1);
+			}
+		}
+
+		//----- Closing the socket -----
+		if (tcp_close(newSockfd) == -1){
+			perror("tcp_close");
+			exit(-1);
+		}
+
+		//----- Closing the file -----
+		if (fclose(inputFile) == EOF){
+			perror("fclose");
+			exit(-1);
+		}
+	// }
+
 }

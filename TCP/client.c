@@ -134,12 +134,14 @@ int main(int argc, char *argv[]){
 		perror("gbn_connect");
 		exit(-1);
 	}
-
-	if (tcp_send(sockfd, input->file_name, strlen(input->file_name), 0) == -1){
+	printf("%s\n",input->file_name );
+	char fname[200];
+	sprintf(fname,"send/%s",input->file_name);
+	if (tcp_send(sockfd, fname, strlen(fname), 0) == -1){
 			perror("gbn_send");
 			exit(-1);
 	}
-	char fname[100];
+	
 	sprintf(fname,"received/%s",input->file_name);
 
 	if ((outputFile = fopen(fname, "wb")) == NULL){

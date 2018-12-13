@@ -917,12 +917,6 @@ int tcp_close(int sockfd){
                     printf("ERROR: send Fin fail, max try: %d !! %s\n", attempts++, strerror(errno));
                     s.state = CLOSED;
                 }
-                //else{
-                //    printf("ERROR: max tries, change state to close. Time out: %d\n", TIMEOUT);
-                //     errno = 0;
-                //     s.state = CLOSED;
-                //    break;
-                // }
                 printf("FIN Sent\n");
                 alarm(TIMEOUT);
                 if(recvfrom(sockfd, recvFin_package, sizeof(*recvFin_package), 0, &from, &fromlen) == -1){
@@ -943,27 +937,6 @@ int tcp_close(int sockfd){
                     }
                 }
                 break;
-
-            // case FIN_WAIT:
-            //     //wait 2 times
-            //     alarm(2*TIMEOUT);
-            //     if(recvfrom(sockfd, recvFin_package, sizeof(*recvFin_package), 0, &from, &fromlen) == -1){
-            //         //if time out , try again
-            //         if(errno != EINTR){
-            //             printf("ERROR: some problem with receive %s\n", strerror(errno));
-            //         }else{
-            //             printf("ERROR: FIN_WAIT time out, state change to close");
-            //         }
-            //         s.state = CLOSED;
-            //     }else{
-            //         printf("SUCCESS: Received FIN packet something...\n");
-            //         if(recvFin_package->type == FIN && recvFin_package->checksum == checksum(recvFin_package)){
-            //             s.seqnum = recvFin_package->seqnum + (uint8_t)1;
-            //             s.state = ESTABLISHED;
-            //         }
-
-            //     }
-            //     break;
             default:
                 break;
 
@@ -976,8 +949,6 @@ int tcp_close(int sockfd){
     free(recvFinack_package);
 
     return(s.state == CLOSED ? close(sockfd) : -1);
-
-
 }
 
 int connect(int sockfd, const struct sockaddr *server, socklen_t socklen){
