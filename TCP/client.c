@@ -3,15 +3,15 @@
 
 
 ssize_t tcp_send(int sockfd, const void *buf, size_t len, int flags){
-	return sr_send(sockfd, buf, len,flags);
-	//return sw_send(sockfd, buf, len,flags);
-	//return gbn_send(sockfd, buf, len,flags);
+	// return sr_send(sockfd, buf, len,flags);
+	// return sw_send(sockfd, buf, len,flags);
+	return gbn_send(sockfd, buf, len,flags);
 
 }
 ssize_t tcp_recv(int sockfd, void *buf, size_t len, int flags){
-	//return sr_recv(sockfd, buf, len,flags);
-	return sw_recv(sockfd, buf, len,flags);
-	//return gbn_recv(sockfd, buf, len,flags);	
+	// return sr_recv(sockfd, buf, len,flags);
+	// return sw_recv(sockfd, buf, len,flags);
+	return gbn_recv(sockfd, buf, len,flags);	
 }
 
 struct client_input {
@@ -117,6 +117,7 @@ int main(int argc, char *argv[]){
 		exit(-1);
 	}
 	s.window_size=input->window_size;
+	s.max_window_size = MAX_WINDOW_SIZE;
 	printf("size............%d\n",s.window_size );
 	
 	char buf[DATALEN*MAX_WINDOW_SIZE];	

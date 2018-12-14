@@ -22,10 +22,11 @@ extern int h_errno;
 extern int errno;
 
 /*----- Protocol parameters -----*/
+
 #define LOSS_PROB 1e-2    /* loss probability                            */
 #define CORR_PROB 1e-3    /* corruption probability                      */
 #define DATALEN   1024    /* length of the payload                       */
-#define N         1024    /* Max number of packets a single call to gbn_send can process */
+#define N         1024    /* Max number of packets a single call to tcp_send can process */
 #define TIMEOUT      1    /* timeout to resend packets (1 second)        */
 
 /*----- Packet types -----*/
@@ -71,8 +72,7 @@ enum {
 };
 
 extern state_t s;
-
-// void gbn_init();
+/* ----tcp functions----- */
 int connect(int sockfd, const struct sockaddr *server, socklen_t socklen);
 int tcp_listen(int sockfd, int backlog);
 int tcp_bind(int sockfd, const struct sockaddr *server, socklen_t socklen);
@@ -86,6 +86,7 @@ ssize_t sr_recv(int sockfd, void *buf, size_t len, int flags);
 ssize_t sw_send(int sockfd, const void *buf, size_t len, int flags);
 ssize_t sw_recv(int sockfd, void *buf, size_t len, int flags);
 
+/*----open congstion simulation files -------*/
 void open_analysis_files(int file_nu );
 
 
@@ -101,4 +102,5 @@ uint16_t checksum(packet *packet);
 #define MAX_ATTEMPTS      9 // The max attempts for gbn_connect(), tcp_accept(), gbn_send(), gbn_receive()
 #define DATALEN_BYTES     2 // The number of bytes used in DATA packet to represent the DATALEN
 #define MAX_WINDOW_SIZE	  50
+#define THRESHOLD         10
 #endif
