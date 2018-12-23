@@ -14,7 +14,7 @@ FILE *congestion_file, *window_size_file ;
 void open_analysis_files(int file_nu ){
     congestion_simulation = true;
     char fname[200];
-    sprintf(fname,"analysis/congestion_file%d.txt",file_nu);
+    sprintf(fname,"analysis/congestion_file%f %_%d.txt",s.loss_prob*100,file_nu);
     if ((congestion_file = fopen(fname, "wb")) == NULL){
         perror("fopen");
         exit(-1);
@@ -27,7 +27,7 @@ void open_analysis_files(int file_nu ){
     
     fwrite(fname, 1, strlen(fname), congestion_file);
     memset(fname, '\0', sizeof(fname));
-    sprintf(fname,"analysis/window_size_file%d.txt",file_nu);
+    sprintf(fname,"analysis/window_size_file_%f %_%d.csv",s.loss_prob*100,file_nu);
     if ((window_size_file = fopen(fname, "wb")) == NULL){
         perror("fopen");
         exit(-1);
@@ -49,7 +49,7 @@ void add_to_congstion_file(int loss_location){
 
 void add_to_window_size_file(int packet_location,int window_size){
     char buf[200];
-    sprintf(buf,"%d     %d \n",packet_location ,window_size);
+    sprintf(buf,"%d,%d,\n",packet_location ,window_size);
     fwrite(buf, 1, strlen(buf), window_size_file);
 }
 
@@ -298,7 +298,7 @@ ssize_t gbn_recv(int sockfd, void *buf, size_t len, int flags){
     bool is_new_data = false;
     uint8_t intial_base= s.seqnum;
     int buf_len=0;
-     printf("..............rec.................%d..................................\n",s.seqnum );
+     // printf("..............rec.................%d..................................\n",s.seqnum );
 
     while(s.state == ESTABLISHED && !is_new_data){
         alarm(TIMEOUT);
@@ -601,7 +601,7 @@ ssize_t sr_recv(int sockfd, void *buf, size_t len, int flags){
       recived_data[i] = 'n';
 
     while(s.state == ESTABLISHED && !is_new_data){
-        alarm(TIMEOUT);
+        alarm(TIMEOUT*2);
         printf("INFO: keep reading data until no more new data to be received.\n");
         if(recvfrom(sockfd, DATA_packet, sizeof(*DATA_packet), 0, &client_addr, &client_len) != -1){
             printf("SUCCESS: Received a packet.\n");

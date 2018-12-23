@@ -3,15 +3,21 @@
 
 
 ssize_t tcp_send(int sockfd, const void *buf, size_t len, int flags){
-	// return sr_send(sockfd, buf, len,flags);
+	 // return sr_send(sockfd, buf, len,flags);
 	// return sw_send(sockfd, buf, len,flags);
 	return gbn_send(sockfd, buf, len,flags);
 
 }
 ssize_t tcp_recv(int sockfd, void *buf, size_t len, int flags){
-	// return sr_recv(sockfd, buf, len,flags);
+	 // return sr_recv(sockfd, buf, len,flags);
 	// return sw_recv(sockfd, buf, len,flags);
-	return gbn_recv(sockfd, buf, len,flags);	
+	//return gbn_recv(sockfd, buf, len,flags);	
+}
+
+long int nowTime(){
+	struct timeval tp;
+	gettimeofday(&tp, NULL);
+	return tp.tv_sec;
 }
 
 struct client_input {
@@ -83,6 +89,8 @@ struct client_input* read_client_file(char *file_name){
 
 
 int main(int argc, char *argv[]){
+
+	long int start = nowTime();
 	int sockfd;          /* socket file descriptor of the client            */
 	int numRead;
 	socklen_t socklen;	 /* length of the socket structure sockaddr         */
@@ -182,7 +190,9 @@ int main(int argc, char *argv[]){
 		perror("fclose");
 		exit(-1);
 	}
-	
+
+	long int end = nowTime();
+	printf("Time taken: %ld\n", end-start);
 	return(0);
 }
 
